@@ -15,11 +15,6 @@ on:
           - dev
           - prod
         default: "dev"
-      skip_upload:
-        description: "Skip uploading to server (save as artifact only)"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   build-windows:
@@ -62,7 +57,7 @@ jobs:
             exit 1
           }
 
-      - name: Create dependency package
+      - name: Create dependency package (build only, skip upload)
         shell: pwsh
         env:
           AYON_SERVER_URL: ${{ vars.AYON_SERVER_URL }}
@@ -71,22 +66,17 @@ jobs:
           $outputDir = "${{ github.workspace }}\output"
           New-Item -ItemType Directory -Force -Path $outputDir
 
-          $createArgs = @(
-            "${{ github.workspace }}\dependencies",
-            "create",
-            "-b", "${{ inputs.bundle_name }}",
-            "--output-dir", $outputDir
-          )
+          & "${{ github.workspace }}\.venv\Scripts\python.exe" `
+            "${{ github.workspace }}\dependencies" create `
+            -b "${{ inputs.bundle_name }}" `
+            --output-dir $outputDir `
+            --skip-upload
 
-          if ("${{ inputs.skip_upload }}" -eq "true") {
-            $createArgs += "--skip-upload"
-          }
-
-          & "${{ github.workspace }}\.venv\Scripts\python.exe" @createArgs
-
-      - name: Upload artifact
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-dependency-package
-          path: output/ayon_*_windows.zip
+          path: |
+            output/ayon_*_windows.zip
+            output/ayon_*_windows.zip.json
           retention-days: 30
