@@ -39,6 +39,20 @@ jobs:
         shell: pwsh
         run: uv sync --no-dev
 
+      - name: Verify environment
+        shell: pwsh
+        env:
+          AYON_SERVER_URL: ${{ inputs.server_url }}
+          AYON_API_KEY: ${{ secrets.AYON_API_KEY }}
+        run: |
+          Write-Host "AYON_SERVER_URL: $env:AYON_SERVER_URL"
+          if ($env:AYON_API_KEY) {
+            Write-Host "AYON_API_KEY: set ($($env:AYON_API_KEY.Substring(0,4))...)"
+          } else {
+            Write-Host "AYON_API_KEY: NOT SET"
+            exit 1
+          }
+
       - name: Create dependency package
         shell: pwsh
         env:
