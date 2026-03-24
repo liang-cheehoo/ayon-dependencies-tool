@@ -1,0 +1,69 @@
+name: Build Windows Dependency Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_name:
+        description: "Bundle name to build the dependency package for"
+        required: true
+        type: string
+      server_url:
+        description: "AYON server URL"
+        required: true
+        default: "https://ayon-dev.spuree.com"
+        type: string
+      skip_upload:
+        description: "Skip uploading to server (save as artifact only)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Sync dependencies
+        shell: pwsh
+        run: uv sync --no-dev
+
+      - name: Create dependency package
+        shell: pwsh
+        env:
+          AYON_SERVER_URL: ${{ inputs.server_url }}
+          AYON_API_KEY: ${{ secrets.AYON_API_KEY }}
+        run: |
+          $outputDir = "${{ github.workspace }}\output"
+          New-Item -ItemType Directory -Force -Path $outputDir
+
+          $createArgs = @(
+            "${{ github.workspace }}\dependencies",
+            "create",
+            "-b", "${{ inputs.bundle_name }}",
+            "--output-dir", $outputDir
+          )
+
+          if ("${{ inputs.skip_upload }}" -eq "true") {
+            $createArgs += "--skip-upload"
+          }
+
+          & "${{ github.workspace }}\.venv\Scripts\python.exe" @createArgs
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-dependency-package
+          path: output/ayon_*_windows.zip
+          retention-days: 30
