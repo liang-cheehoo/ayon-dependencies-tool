@@ -689,6 +689,7 @@ def install_dependencies(
     return_code = run_subprocess(
         [
             uv_bin, "pip", "install",
+            "--python", venv_info.python_executable,
             "-r", requirements_path,
         ],
         cwd=venv_info.root,
@@ -702,6 +703,7 @@ def install_dependencies(
         runtime_dependencies,
         runtime_root,
         uv_bin,
+        venv_info.python_executable,
     )
     if PLATFORM_NAME == "windows":
         runtime_site_packages = os.path.join(
@@ -733,7 +735,7 @@ def _dep_value_to_requirement(name: str, value) -> Optional[str]:
 
 
 def _install_runtime_dependencies(
-    runtime_dependencies, runtime_root, uv_bin
+    runtime_dependencies, runtime_root, uv_bin, python_executable=None
 ):
     """Install runtime dependencies to a custom prefix directory.
 
@@ -769,15 +771,15 @@ def _install_runtime_dependencies(
     with open(requirements_path, "w") as stream:
         stream.write("\n".join(requirements_lines) + "\n")
 
-    run_subprocess(
-        [
-            uv_bin, "pip", "install",
-            "--upgrade",
-            "-r", requirements_path,
-            "--prefix", str(runtime_root),
-        ],
-        cwd=runtime_root,
-    )
+    cmd = [
+        uv_bin, "pip", "install",
+        "--upgrade",
+        "-r", requirements_path,
+        "--prefix", str(runtime_root),
+    ]
+    if python_executable:
+        cmd.extend(["--python", python_executable])
+    run_subprocess(cmd, cwd=runtime_root)
 
 
 def _convert_url_constraints(full_toml_data):
