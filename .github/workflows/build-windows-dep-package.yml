@@ -7,11 +7,14 @@ on:
         description: "Bundle name to build the dependency package for"
         required: true
         type: string
-      server_url:
-        description: "AYON server URL"
+      environment:
+        description: "Target environment"
         required: true
-        default: "https://ayon-dev.spuree.com"
-        type: string
+        type: choice
+        options:
+          - dev
+          - prod
+        default: "dev"
       skip_upload:
         description: "Skip uploading to server (save as artifact only)"
         required: false
@@ -22,6 +25,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 30
+    environment: ${{ inputs.environment }}
 
     steps:
       - name: Checkout repository
@@ -42,21 +46,26 @@ jobs:
       - name: Verify environment
         shell: pwsh
         env:
-          AYON_SERVER_URL: ${{ inputs.server_url }}
+          AYON_SERVER_URL: ${{ vars.AYON_SERVER_URL }}
           AYON_API_KEY: ${{ secrets.AYON_API_KEY }}
         run: |
+          Write-Host "Environment: ${{ inputs.environment }}"
           Write-Host "AYON_SERVER_URL: $env:AYON_SERVER_URL"
+          if (-not $env:AYON_SERVER_URL) {
+            Write-Host "AYON_SERVER_URL: NOT SET — add it as a variable in the '${{ inputs.environment }}' environment"
+            exit 1
+          }
           if ($env:AYON_API_KEY) {
             Write-Host "AYON_API_KEY: set ($($env:AYON_API_KEY.Substring(0,4))...)"
           } else {
-            Write-Host "AYON_API_KEY: NOT SET"
+            Write-Host "AYON_API_KEY: NOT SET — add it as a secret in the '${{ inputs.environment }}' environment"
             exit 1
           }
 
       - name: Create dependency package
         shell: pwsh
         env:
-          AYON_SERVER_URL: ${{ inputs.server_url }}
+          AYON_SERVER_URL: ${{ vars.AYON_SERVER_URL }}
           AYON_API_KEY: ${{ secrets.AYON_API_KEY }}
         run: |
           $outputDir = "${{ github.workspace }}\output"
