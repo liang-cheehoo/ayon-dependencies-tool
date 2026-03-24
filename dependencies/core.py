@@ -689,7 +689,7 @@ def install_dependencies(
     return_code = run_subprocess(
         [
             uv_bin, "pip", "install",
-            "--python", venv_info.python_executable,
+            "--python", venv_info.venv_python,
             "-r", requirements_path,
         ],
         cwd=venv_info.root,
@@ -703,7 +703,7 @@ def install_dependencies(
         runtime_dependencies,
         runtime_root,
         uv_bin,
-        venv_info.python_executable,
+        venv_info.venv_python,
     )
     if PLATFORM_NAME == "windows":
         runtime_site_packages = os.path.join(
